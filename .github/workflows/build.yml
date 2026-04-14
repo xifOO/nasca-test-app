@@ -6,51 +6,50 @@ on:
     pull_request:
         branches: [main, master]
 
-
 jobs:
     build:
         runs-on: ubuntu-latest
-    
-    steps:
-        - name: Checkout code
-        uses: actions/checkout@v4
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-        - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-            python-version: "3.12"
-        
-        - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-            version: latest
-            virtualenvs-in-project: true
-        
-        - name: Install dependencies
-        run: poetry install --no-interaction --with test
-        
-        - name: Install shellcheck
-        run: sudo apt-get install -y shellcheck
+          - name: Setup Python 3.12
+            uses: actions/setup-python@v5
+            with:
+                python-version: "3.12"
+            
+          - name: Install Poetry
+            uses: snok/install-poetry@v1
+            with:
+                version: latest
+                virtualenvs-in-project: true
+            
+          - name: Install dependencies
+            run: poetry install --no-interaction --with test
+            
+          - name: Install shellcheck
+            run: sudo apt-get install -y shellcheck
 
-        - name: Lint Bash scripts
-        run: shellcheck app/scripts/*.sh
-        
-        - name: Run tests
-        run: poetry run pytest -v
+          - name: Lint Bash scripts
+            run: shellcheck app/scripts/*.sh
+            
+          - name: Run tests
+            run: poetry run pytest -v
 
-        - name: Build Docker image
-        run: docker build --target prod -t simple-app:ci .
+          - name: Build Docker image
+            run: docker build --target prod -t simple-app:ci .
 
-        -name: Run container
-        run: docker run -d -p 5000:5000 --name test-app simple-app:ci
+          - name: Run container
+            run: docker run -d -p 5000:5000 --name test-app simple-app:ci
 
-        - name: Test container health
-        run: for i in {1..10}; do
-                STATUS=$(docker inspect --format='{{.State.Health.Status}}' test-app)
-                echo "Health status: $STATUS"
-                if [ $STATUS = "healthy" ]; then
-                    exit 0
-                fi
-                sleep 3
-            done
-            exit 1
+          - name: Test container health
+            run: |
+                for i in {1..10}; do
+                    STATUS=$(docker inspect --format='{{.State.Health.Status}}' test-app)
+                    echo "Health status: $STATUS"
+                    if [ $STATUS = "healthy" ]; then
+                        exit 0
+                    fi
+                    sleep 3
+                done
+                exit 1
