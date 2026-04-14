@@ -22,7 +22,7 @@ run:
 	poetry run uvicorn app.main:app --host 0.0.0.0 --port $(PORT) --reload
 
 server-info:
-	./$(SCRIPTS)/server-info.sh http://localhost:$(PORT)/health
+	app/$(SCRIPTS)/server-info.sh http://localhost:$(PORT)/health
 
 docker-build: 
 	docker build -t $(IMAGE) .
