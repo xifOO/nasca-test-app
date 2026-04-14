@@ -26,18 +26,21 @@ jobs:
             
           - name: Install dependencies
             run: poetry install --no-interaction --no-root --with test
-            
+          
+          - name: Run Ruff
+            run: poetry run ruff check .
+
           - name: Install shellcheck
             run: sudo apt-get install -y shellcheck
 
           - name: Lint Bash scripts
-            run: shellcheck app/scripts/*.sh
+            run: shellcheck app/scripts/*.sh 
             
           - name: Run tests
             run: poetry run pytest -v
 
           - name: Build Docker image
-            run: docker build --target prod -t simple-app:ci .
+            run: docker build -t simple-app:ci .
 
           - name: Run container
             run: docker run -d -p 5000:5000 --name test-app simple-app:ci
