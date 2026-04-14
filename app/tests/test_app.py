@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 import pytest
-from app.main import app, users_db
+from app.main import users_db, app
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +43,9 @@ def test_create_user_validation_error():
 
 
 def test_get_user_by_id():
-    created = client.post("/api/users", json={"name": "Charlie", "email": "charlie@example.com"})
+    created = client.post(
+        "/api/users", json={"name": "Charlie", "email": "charlie@example.com"}
+    )
     user_id = created.json()["id"]
     response = client.get(f"/api/users/{user_id}")
     assert response.status_code == 200
@@ -57,7 +59,9 @@ def test_get_user_not_found():
 
 
 def test_delete_user_success():
-    created = client.post("/api/users", json={"name": "Dave", "email": "dave@example.com"})
+    created = client.post(
+        "/api/users", json={"name": "Dave", "email": "dave@example.com"}
+    )
     user_id = created.json()["id"]
     response = client.delete(f"/api/users/{user_id}")
     assert response.status_code == 200

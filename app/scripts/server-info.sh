@@ -1,25 +1,16 @@
 #!/bin/bash
 
-
 set -e -o pipefail
 
 SCRIPT_NAME="$(basename "$0")"
 LOG_DIR="${LOG_DIR:-/tmp}"
-LOG_FILE="${LOG_DIR}/server-info-$(date +%Y%m%d).log"
-TIMEOUT=5
+CURL_TIMEOUT=5
 
 
 log() {
-    local line="$*"
-    echo -e "$line" | tee -a "$LOG_FILE"
+    echo -e "$*"
 }
 
-log_raw() {
-    local colored="$1"
-    local plain="$2"
-    echo -e "$colored"
-    echo "$plain" >> "$LOG_FILE"
-}
 
 header() {
     log ""
@@ -48,8 +39,6 @@ OPTIONS:
 ARGUMENTS:
   URL       Один или несколько URL для проверки доступности (опционально)
  
-ENVIRONMENT:
-  LOG_DIR   Директория для лог-файла (по умолчанию: /tmp)
  
 EXAMPLES:
   $SCRIPT_NAME
@@ -63,6 +52,7 @@ EXIT CODES:
 EOF
 }
 
+
 print_system_info() {
     header "Server Diagnostics"
  
@@ -72,6 +62,7 @@ print_system_info() {
     kernel="$(uname -r)"
  
     if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
         os_name="$(. /etc/os-release && echo "${PRETTY_NAME}")"
     elif [[ "$(uname -s)" == "Darwin" ]]; then
         os_name="macOS $(sw_vers -productVersion)"
@@ -189,19 +180,13 @@ check_services() {
  
         if [[ "$http_code" =~ ^2 ]]; then
             (( healthy++ )) || true
-            log_raw \
-                "${GREEN}[OK]${RESET}   $url (${http_code}, ${elapsed}ms)" \
-                "[OK]   $url (${http_code}, ${elapsed}ms)"
+            log "[OK]   $url (${http_code}, ${elapsed}ms)"
         elif [[ "$http_code" == "000" ]]; then
             all_ok=false
-            log_raw \
-                "${RED}[FAIL]${RESET} $url (connection refused)" \
-                "[FAIL] $url (connection refused)"
+            log "[FAIL] $url (connection refused)"
         else
             all_ok=false
-            log_raw \
-                "${RED}[FAIL]${RESET} $url (${http_code}, ${elapsed}ms)" \
-                "[FAIL] $url (${http_code}, ${elapsed}ms)"
+            log "[FAIL] $url (${http_code}, ${elapsed}ms)"
         fi
     done
  
@@ -216,11 +201,6 @@ check_services() {
 
 
 main() {
-    {
-        echo ""
-        echo "Run: $(date '+%Y-%m-%d %H:%M:%S')"
-    } >> "$LOG_FILE"
- 
     local urls=()
     for arg in "$@"; do
         case "$arg" in
@@ -248,9 +228,6 @@ main() {
     if [[ ${#urls[@]} -gt 0 ]]; then
         check_services "${urls[@]}" || exit_code=1
     fi
- 
-    log ""
-    log "Log saved: $LOG_FILE"
  
     return "$exit_code"
 }
