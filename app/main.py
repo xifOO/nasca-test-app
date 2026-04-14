@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import FastAPI, HTTPException
 
-from schema import User, UserCreate
+from app.schema import User, UserCreate
 
 
 app = FastAPI()

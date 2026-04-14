@@ -20,59 +20,33 @@ RUN apt-get update && \
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 WORKDIR /app
-
 COPY pyproject.toml poetry.lock* ./
 
-RUN poetry install --no-root --no-interaction --no-ansi --only main
+RUN poetry config virtualenvs.create true && \
+    poetry install --no-root --no-interaction --no-ansi
 
 FROM python-base AS development
 
 ENV APP_ENV=development
 
-RUN groupadd -g 1500 appuser && \
-    useradd -m -u 1500 -g appuser appuser
+RUN groupadd -g 1500 poetry && \
+    useradd -m -u 1500 -g poetry poetry
 
 COPY --from=builder-base $POETRY_HOME $POETRY_HOME
 
+ENV PATH="$POETRY_HOME/bin:/usr/local/bin:$PATH"
+
 WORKDIR /app
 
-COPY --chown=appuser:appuser pyproject.toml poetry.lock* README.md ./
+COPY --chown=poetry:poetry pyproject.toml poetry.lock* README.md ./
 
-RUN poetry install --no-root --no-interaction --no-ansi --with test
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root --no-interaction --no-ansi
 
-COPY --chown=appuser:appuser . .
+COPY --chown=poetry:poetry . .
 
-USER appuser
+USER poetry
 
-EXPOSE 5000
+EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c \
-    "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" \
-    || exit 1
- 
-CMD ["uvicorn", "app:main", "--host", "0.0.0.0", "--port", "5000", "--reload"]
-
-FROM python-base AS prod
- 
-ENV APP_ENV=prod
- 
-RUN groupadd -g 1500 appuser && \
-    useradd -m -u 1500 -g appuser appuser
- 
-COPY --from=builder-base $VENV_PATH $VENV_PATH
- 
-WORKDIR /app
- 
-COPY --chown=appuser:appuser app.py ./
- 
-USER appuser
- 
-EXPOSE 5000
- 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c \
-    "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" \
-    || exit 1
- 
-CMD ["uvicorn", "app:main", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
