@@ -25,6 +25,22 @@ def test_health():
     assert response.json() == {"status": "ok"}
 
 
+def test_get_users():
+    client.post("/api/users", json={"name": "Alice", "email": "alice@example.com"})
+    client.post("/api/users", json={"name": "Bob", "email": "bob@example.com"})
+
+    response = client.get("/api/users")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "users" in data
+    assert len(data["users"]) == 2
+    assert {user["email"] for user in data["users"]} == {
+        "alice@example.com",
+        "bob@example.com",
+    }
+
+
 def test_create_user_success():
     payload = {"name": "Alice", "email": "alice@example.com", "age": 30}
     response = client.post("/api/users", json=payload)
@@ -65,8 +81,12 @@ def test_delete_user_success():
     user_id = created.json()["id"]
     response = client.delete(f"/api/users/{user_id}")
     assert response.status_code == 200
+    assert response.json()["message"] == "Пользователь удален"
 
 
 def test_delete_user_not_found():
-    response = client.delete("/api/users/not-found-id")
+    user_id = "not-found-id"
+    response = client.delete(f"/api/users/{user_id}")
     assert response.status_code == 404
+    assert response.json()["detail"] == f"Пользователь с id={user_id} не найден."
+
