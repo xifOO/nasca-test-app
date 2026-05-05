@@ -5,10 +5,14 @@ set -e -o pipefail
 SCRIPT_NAME="$(basename "$0")"
 LOG_DIR="${LOG_DIR:-/tmp}"
 CURL_TIMEOUT=5
+LOG_FILE=""
 
 
 log() {
     echo -e "$*"
+    if [[ -n "$LOG_FILE" ]]; then
+        echo -e "$*" >> "$LOG_FILE"
+    fi
 }
 
 
@@ -24,6 +28,28 @@ check_dependency() {
         return 1
     fi
     return 0
+}
+
+
+timestamp() {
+    date '+%Y%m%d_%H%M%S'
+}
+
+
+epoch_ms() {
+    local ts
+    ts="$(date +%s%3N 2>/dev/null || true)"
+    if [[ "$ts" =~ ^[0-9]+$ ]]; then
+        echo "$ts"
+    else
+        echo 0
+    fi
+}
+
+
+init_logging() {
+    mkdir -p "$LOG_DIR"
+    LOG_FILE="${LOG_DIR%/}/${SCRIPT_NAME%.sh}_$(timestamp).log"
 }
 
 
@@ -45,7 +71,11 @@ EXAMPLES:
   $SCRIPT_NAME http://localhost:5000/health
   $SCRIPT_NAME http://localhost:5000/health http://localhost:8080/health
   LOG_DIR=/var/log $SCRIPT_NAME http://localhost:5000/health
- 
+
+LOGGING:
+  По умолчанию лог пишется в /tmp
+  Имя файла: server-info_YYYYMMDD_HHMMSS.log
+
 EXIT CODES:
   0   Все сервисы доступны (или URL не переданы)
   1   Один или более сервисов недоступны
@@ -168,14 +198,16 @@ check_services() {
         local http_code elapsed
  
         local start_ms end_ms
-        start_ms=$(date +%s%3N 2>/dev/null || echo 0)
+        start_ms="$(epoch_ms)"
  
-        http_code="$(curl -s -o /dev/null -w "%{http_code}" \
+        if ! http_code="$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time "$CURL_TIMEOUT" \
             --connect-timeout "$CURL_TIMEOUT" \
-            "$url" 2>/dev/null || echo "000")"
+            "$url" 2>/dev/null)"; then
+            http_code="000"
+        fi
  
-        end_ms=$(date +%s%3N 2>/dev/null || echo 0)
+        end_ms="$(epoch_ms)"
         elapsed=$(( end_ms - start_ms ))
  
         if [[ "$http_code" =~ ^2 ]]; then
@@ -220,6 +252,9 @@ main() {
     done
  
     local exit_code=0
+
+    init_logging
+    log "Log file: $LOG_FILE"
  
     print_system_info
     print_resources
