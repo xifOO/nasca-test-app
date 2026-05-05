@@ -30,9 +30,16 @@ REST API на **FastAPI** для управления пользователям
 git clone <repo-url>
 cd nasca-test-app
 
-poetry install
+poetry install --with test
 
 poetry run uvicorn app.main:app --host 0.0.0.0 --port 5000 --reload
+```
+
+Или через `Makefile`:
+
+```bash
+make install
+make run
 ```
 
 ### Запуск через docker compose
@@ -55,7 +62,7 @@ docker compose down
 | `GET` | `/api/users` | Список всех пользователей | — | `200` | `{"users": [...]}` |
 | `POST` | `/api/users` | Создать нового пользователя | `name`, `email`, `age` | `201`, `422` | `{"id": "...", "name": "..."}` |
 | `GET` | `/api/users/{id}` | Получить пользователя по ID | `user_id` (path) | `200`, `404` | `{"id": "...", "name": "..."}` |
-| `DELETE` | `/api/users/{id}` | Удалить пользователя | `user_id` (path) | `200`, `404` | `{"message": "User deleted"}` |
+| `DELETE` | `/api/users/{id}` | Удалить пользователя | `user_id` (path) | `200`, `404` | `{"message": "Пользователь удален"}` |
 
 # Пример запроса
 
@@ -68,17 +75,20 @@ curl -X POST http://localhost:5000/api/users \
 
 ### Bash-скрипт диагностики
 
-Скрипт scripts/server-info.sh собирает информацию о системе, проверяет ресурсы, статус Docker и доступность HTTP-эндпоинтов. 
+Скрипт `app/scripts/server-info.sh` собирает информацию о системе, проверяет ресурсы, статус Docker и доступность HTTP-эндпоинтов. Результат одновременно выводится в консоль и записывается в лог-файл с timestamp в имени. По умолчанию логи сохраняются в `/tmp`, каталог можно переопределить через `LOG_DIR`.
 Работает на Linux/macOS.
 
 # Использование
 
 ```bash
 # Диагностика сервера без проверки сервисов
-./scripts/server-info.sh
+app/scripts/server-info.sh
 
 # С проверкой конкретных health-эндпоинтов
-./scripts/server-info.sh http://localhost:5000/health http://localhost:8080/health
+app/scripts/server-info.sh http://localhost:5000/health http://localhost:8080/health
+
+# С записью логов в свой каталог
+LOG_DIR=/var/log app/scripts/server-info.sh http://localhost:5000/health
 ```
 
 ---
@@ -99,11 +109,11 @@ poetry run python -m pytest -v
 | `app/main.py` | Определение маршрутов, логика CRUD, инициализация FastAPI |
 | `app/schema.py` | Pydantic-модели для валидации запросов и ответов |
 | `app/tests/test_app.py` | Интеграционные тесты с `TestClient` и `pytest` |
-| `scripts/server-info.sh` | Скрипт: системная информация + healthcheck |
-| `Dockerfile` | Многоэтапная сборка: `builder` → `development` |
-| `docker-compose.yml` | Запуск приложения с healthcheck, портами и логированием |
+| `app/scripts/server-info.sh` | Скрипт: системная информация + healthcheck |
+| `Dockerfile` | Многоэтапная сборка: `builder-base` → `development` / `production` |
+| `docker-compose.yaml` | Запуск приложения с healthcheck, портами и логированием |
 | `pyproject.toml` | Зависимости (`fastapi`, `uvicorn`, `pytest`), конфиг Poetry |
-| `.github/workflows/ci.yml` | CI-пайплайн: линтинг → тесты → сборка образа → healthcheck |
+| `.github/workflows/build.yml` | CI-пайплайн: линтинг → тесты → сборка образа → healthcheck |
 
 ---
 
