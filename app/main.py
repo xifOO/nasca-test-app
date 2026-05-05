@@ -14,7 +14,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-app = FastAPI()
+app = FastAPI(title="Nasca Test App")
 users_db = {}
 
 
@@ -63,7 +63,7 @@ def delete_user(user_id: str):
     if not user:
         logger.warning(f"DELETE /api/users/{user_id} | Не найден")
         raise HTTPException(
-            status_code=404, detail="Пользователь с id={user_id} не найден."
+            status_code=404, detail=f"Пользователь с id={user_id} не найден."
         )
     logger.info(f"DELETE /api/users/{user_id} | Удален")
     return {"message": "Пользователь удален"}
