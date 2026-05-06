@@ -1,0 +1,12 @@
+services:
+  {{ app_name }}:
+    container_name: {{ app_name }}
+    build:
+      context: .
+      target: production
+    image: {{ docker_image }}
+    env_file:
+      - .env
+    ports:
+      - "{{ app_port }}:{{ app_port }}"
+    restart: unless-stopped

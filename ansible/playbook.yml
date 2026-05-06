@@ -1,0 +1,7 @@
+- name: deploy app
+  hosts: webservers
+  become: true
+
+  roles:
+    - docker
+    - app

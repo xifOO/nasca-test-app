@@ -1,0 +1,7 @@
+app_name: simple-app
+app_port: 5000
+app_dir: /opt/simple-app
+docker_image: simple-app:latest
+
+app_environment:
+  APP_ENV: production
