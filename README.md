@@ -100,6 +100,43 @@ LOG_DIR=/var/log app/scripts/server-info.sh http://localhost:5000/health
 poetry run python -m pytest -v
 ```
 
+### Ansible развертывание
+
+#### Структура 
+
+```
+ansible/
+├── inventory.ini        # адрес и пользователь целевого сервера
+├── playbook.yml         # точка входа
+├── group_vars/
+│   └── all.yml          # переменные: порт, образ, окружение
+└── roles/
+    ├── docker/          # установка Docker
+    │   ├── tasks/main.yml
+    │   └── handlers/main.yml
+    └── app/             # деплой приложения
+        ├── tasks/main.yml
+        └── templates/
+            ├── docker-compose.yml.j2
+            └── .env.j2
+```
+
+#### Запуск
+
+```bash
+# проверить связь с сервером
+ansible -i ansible/inventory.ini webservers -m ping
+
+# развернуть приложение
+ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+
+# Dry-run
+ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --check
+
+# С verbose логированием
+ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -vvv
+```
+
 ---
 
 ### Структура проекта
@@ -113,6 +150,7 @@ poetry run python -m pytest -v
 | `Dockerfile` | Многоэтапная сборка: `builder-base` → `development` / `production` |
 | `docker-compose.yaml` | Запуск приложения с healthcheck, портами и логированием |
 | `pyproject.toml` | Зависимости (`fastapi`, `uvicorn`, `pytest`), конфиг Poetry |
+| `ansible/` | Роли и playbook для автоматизированного деплоя |
 | `.github/workflows/build.yml` | CI-пайплайн: линтинг → тесты → сборка образа → healthcheck |
 
 ---
@@ -124,3 +162,4 @@ poetry run python -m pytest -v
 | `ModuleNotFoundError: No module named 'main'` при запуске тестов | Запуск не из корня проекта | Запускайте `poetry run python -m pytest` из корня.|
 | `date: illegal option -- %3N` в bash-скрипте на macOS | `%3N` (миллисекунды) не поддерживается в BSD `date` | Скрипт использует автодетект. Обновите до последней версии или замените на `date +%s` |
 | Порт `5000` already in use | Другой процесс занимает порт | Найдите: `lsof -i :5000` → `kill -9 <PID>`. Или измените порт в `docker-compose.yml` |
+| `No package matching 'docker-ce' is available` в Ansible | Неверная архитектура в apt repo (`aarch64` вместо `arm64`) | В `docker/tasks/main.yml` используйте: `arch={{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}` |
